@@ -67,13 +67,13 @@ var Boid = function(pd) {
         this.mover.setMaxSpeed(9.0);
 
         // initial slow speed
-        this.mover.setSpeed(this.mover.maxSpeed() * 0.3);
+        this.mover.setSpeed(this.mover.maxSpeed() * 0.6);
 
         // randomize initial orientation
         this.mover.regenerateOrthonormalBasisUF(RandomUnitVector());
 
         // randomize initial position
-        this.mover.setPosition(RandomVectorInUnitRadiusSphere().mult(10.0) );
+        this.mover.setPosition(RandomVectorInUnitRadiusSphere().mult(20.0) );
 
         // notify proximity database that our position has changed
         this.proximityToken.updateForNewPosition (this.mover.position());
@@ -142,7 +142,7 @@ var Boid = function(pd) {
         // once outside, select strategy
         if(Boid.boundaryCondition === 0) {
             // steer back when outside
-            var seek = this.xxxsteerForSeek(Vec3.zero);
+            var seek = this.mover.xxxsteerForSeek(Vec3.zero);
             var lateral = seek.perpendicularComponent(this.mover.forward ());
             return lateral;
         }
@@ -183,9 +183,7 @@ var Boid = function(pd) {
 Boid.worldRadius  =  50.0;
 Boid.boundaryCondition = 0;
 
-
 // ----------------------------------------------------------------------------
-
 
 var center = new Vec3();
 var div = 10.0;
@@ -203,9 +201,9 @@ var currentTime;
 var elapsedTime;
 
 var ctx;
-var scale = 10.0;
-var xoff = 30.0;
-var yoff = 10.0;
+var scale = 5.0;
+var xoff = 60.0;
+var yoff = 60.0;
 
 function addBoidToFlock (pd) {
     population++;
@@ -246,19 +244,19 @@ function boidUpdater() {
         var fwd = flock[i].mover.forward();
         var side = flock[i].mover.side();
 
-        var x = pos.x * scale + scale * xoff;
-        var z = pos.z * scale + scale * yoff;
+        var x = pos.x * scale;
+        var z = pos.z * scale;
         // the triangle
-        // ctx.beginPath();
-        // ctx.moveTo(x, z);
-        // ctx.lineTo(x - (fwd.x-side.x) * scale + xoff * scale, z-(fwd.y-side.y) * scale + yoff * scale);
-        // ctx.lineTo(x - (fwd.x+side.x) * scale + xoff * scale, z-(fwd.y+side.y) * scale + yoff * scale);
-        // ctx.closePath();
-        // ctx.stroke();
-
         ctx.beginPath();
-        ctx.arc(pos.x * scale + scale * xoff, pos.z * scale + scale * yoff, scale, 0, Math.PI*2);
-        ctx.fill();        
+        ctx.moveTo(x + scale * xoff, z + scale * yoff);
+        ctx.lineTo(x - (fwd.x-side.x) * scale + xoff * scale, z-(fwd.y-side.y) * scale + yoff * scale);
+        ctx.lineTo(x - (fwd.x+side.x) * scale + xoff * scale, z-(fwd.y+side.y) * scale + yoff * scale);
+        ctx.closePath();
+        ctx.stroke();
+
+        // ctx.beginPath();
+        // ctx.arc(pos.x * scale + scale * xoff, pos.z * scale + scale * yoff, scale, 0, Math.PI*2);
+        // ctx.fill();        
     }
     setTimeout( boidUpdater, 20 );
 }

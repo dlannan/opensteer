@@ -149,6 +149,7 @@ var Pedestrian = function( pd ) {
             // (radius is largest distance between vehicles traveling head-on
             // where a collision is possible within caLeadTime seconds.)
             var maxRadius = caLeadTime * this.mover.maxSpeed() * 2.0;
+
             this.neighbors = this.proximityToken.findNeighbors(this.mover.position(), maxRadius);
             
             if ((leakThrough < frandom01()) && (this.neighbors.length > 0)) {
@@ -357,7 +358,7 @@ $(document).ready(function() {
 
     // create the specified number of Pedestrians
     population = 0;
-    for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < 100; i++) {
         addPedestrianToCrowd();    
     }
 
