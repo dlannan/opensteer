@@ -262,14 +262,14 @@ function SteerLibrary( mover ) {
                 var collisionDangerThreshold = mover.radius() * 2;
 
                 // predicted time until nearest approach of "this" and "other"
-                var time = predictNearestApproachTime (other);
+                var time = mover.predictNearestApproachTime (other);
 
                 // If the time is in the future, sooner than any other
                 // threatened collision...
                 if ((time >= 0) && (time < minTime)) {
                     // if the two will be close enough to collide,
                     // make a note of it
-                    if (computeNearestApproachPositions (other, time) < collisionDangerThreshold) {
+                    if (mover.computeNearestApproachPositions (other, time) < collisionDangerThreshold) {
                         minTime = time;
                         threat = other;
                         xxxThreatPositionAtNearestApproach = mover.hisPositionAtNearestApproach;
@@ -282,7 +282,7 @@ function SteerLibrary( mover ) {
         // if a potential collision was found, compute steering to avoid
         if (threat) {
             // parallel: +1, perpendicular: 0, anti-parallel: -1
-            var parallelness = forward().dot(threat.forward());
+            var parallelness = mover.forward().dot(threat.mover.forward());
             var angle = 0.707;
 
             if (parallelness < -angle) {
@@ -295,15 +295,15 @@ function SteerLibrary( mover ) {
             else {
                 if (parallelness > angle) {
                     // parallel paths: steer away from threat
-                    var offset = threat.position().sub( mover.position() );
+                    var offset = threat.mover.position().sub( mover.position() );
                     var sideDot = offset.dot(mover.side());
                     steer = (sideDot > 0) ? -1.0 : 1.0;
                 }
                 else {
                     // perpendicular paths: steer behind threat
                     // (only the slower of the two does this)
-                    if (threat.speed() <= mover.speed())  {
-                        var sideDot = mover.side().dot(threat.velocity());
+                    if (threat.mover.speed() <= mover.speed())  {
+                        var sideDot = mover.side().dot(threat.mover.velocity());
                         steer = (sideDot > 0) ? -1.0 : 1.0;
                     }
                 }
@@ -321,7 +321,7 @@ function SteerLibrary( mover ) {
         // imagine we are at the origin with no velocity,
         // compute the relative velocity of the other vehicle
         var myVelocity = mover.velocity();
-        var otherVelocity = otherVehicle.velocity();
+        var otherVelocity = otherVehicle.mover.velocity();
         var relVelocity = otherVelocity.sub( myVelocity );
         var relSpeed = relVelocity.length();
 
@@ -339,10 +339,10 @@ function SteerLibrary( mover ) {
 
         // find distance from its path to origin (compute offset from
         // other to us, find length of projection onto path)
-        var relPosition = mover.position().sub( otherVehicle.position() );
+        var relPosition = mover.position().sub( otherVehicle.mover.position() );
         var projection = relTangent.dot(relPosition);
 
-        return projection.div( relSpeed );
+        return projection / relSpeed;
     }
 
     // Given the time until nearest approach (predictNearestApproachTime)
@@ -351,10 +351,10 @@ function SteerLibrary( mover ) {
     mover.computeNearestApproachPositions = function( otherVehicle, time) {
 
         var    myTravel = mover.forward().mult( mover.speed () * time );
-        var otherTravel = otherVehicle.forward().mult( otherVehicle.speed() * time );
+        var otherTravel = otherVehicle.mover.forward().mult( otherVehicle.mover.speed() * time );
     
         var    myFinal = mover.position().add( myTravel );
-        var otherFinal = otherVehicle.position().add( otherTravel );
+        var otherFinal = otherVehicle.mover.position().add( otherTravel );
     
         // xxx for annotation
         mover.ourPositionAtNearestApproach = myFinal;
@@ -378,14 +378,14 @@ function SteerLibrary( mover ) {
         // for each of the other vehicles...
         for (var i = 0; i < others.length; i++) {
             var other = others[i];
-            if (other.neq(mover))  {
-                var sumOfRadii = mover.radius() + other.radius();
+            if (other !== mover)  {
+                var sumOfRadii = mover.radius() + other.mover.radius();
                 var minCenterToCenter = minSeparationDistance + sumOfRadii;
-                var offset = other.position().sub( mover.position() );
+                var offset = other.mover.position().sub( mover.position() );
                 var currentDistance = offset.length();
 
                 if (currentDistance < minCenterToCenter) {
-                    return (-offset).perpendicularComponent (mover.forward());
+                    return (offset.neg()).perpendicularComponent(mover.forward());
                 }
             }
         }
@@ -400,11 +400,11 @@ function SteerLibrary( mover ) {
 
     mover.inBoidNeighborhood = function( otherVehicle, minDistance, maxDistance, cosMaxAngle) {
         
-        if (otherVehicle == mover) {
+        if (otherVehicle.mover === mover) {
             return false;
         }
         else {
-            var offset = otherVehicle.position().sub( position() );
+            var offset = otherVehicle.mover.position().sub( mover.position() );
             var distanceSquared = offset.lengthSquared();
     
             // definitely in neighborhood if inside minDistance sphere
@@ -418,7 +418,7 @@ function SteerLibrary( mover ) {
                 }
                 else {
                     // otherwise, test angular offset from forward axis
-                    var unitOffset = offset.div( Math.sqrt(distanceSquared) );
+                    var unitOffset = offset.divV( Math.sqrt(distanceSquared) );
                     var forwardness = mover.forward().dot(unitOffset);
                     return forwardness > cosMaxAngle;
                 }
@@ -436,13 +436,13 @@ function SteerLibrary( mover ) {
         var neighbors = 0;
 
         // for each of the other vehicles...        
-        for (var i=0; i<flock.length(); i++) {
+        for (var i=0; i<flock.length; i++) {
             var otherVehicle = flock[i];
-            if (inBoidNeighborhood (otherVehicle, mover.radius()*3, maxDistance, cosMaxAngle)) {
+            if (mover.inBoidNeighborhood (otherVehicle, mover.radius()*3, maxDistance, cosMaxAngle)) {
                 // add in steering contribution
                 // (opposite of the offset direction, divided once by distance
                 // to normalize, divided another time to get 1/d falloff)
-                var offset = otherVehicle.position().sub( position() );
+                var offset = otherVehicle.mover.position().sub( mover.position() );
                 var distanceSquared = offset.dot(offset);
                 steering = steering.add(offset.div(-distanceSquared));
 
@@ -476,11 +476,11 @@ function SteerLibrary( mover ) {
         var neighbors = 0;
 
         // for each of the other vehicles...
-        for (var i=0; i<flock.length(); i++) {
+        for (var i=0; i<flock.length; i++) {
             var otherVehicle = flock[i];
-            if (inBoidNeighborhood (otherVehicle, mover.radius()*3, maxDistance, cosMaxAngle))  {
+            if (mover.inBoidNeighborhood (otherVehicle, mover.radius()*3, maxDistance, cosMaxAngle))  {
                 // accumulate sum of neighbor's heading
-                steering = steerin.add(otherVehicle.forward());
+                steering = steering.add(otherVehicle.mover.forward());
                 // count neighbors
                 neighbors++;
             }
@@ -488,7 +488,7 @@ function SteerLibrary( mover ) {
 
         // divide by neighbors, subtract off current heading to get error-
         // correcting direction, then normalize to pure direction
-        if (neighbors > 0) steering = ((steering.div(neighbors)).sub(forward())).normalize();
+        if (neighbors > 0) steering = ((steering.div(neighbors)).sub(mover.forward())).normalize();
         return steering;
     }
 
@@ -502,11 +502,11 @@ function SteerLibrary( mover ) {
         var neighbors = 0;
 
         // for each of the other vehicles...
-        for (var i=0; i<flock.length(); i++) {
+        for (var i=0; i<flock.length; i++) {
             var otherVehicle = flock[i];
-            if (inBoidNeighborhood (otherVehicle, mover.radius()*3, maxDistance, cosMaxAngle)) {
+            if (mover.inBoidNeighborhood (otherVehicle, mover.radius()*3, maxDistance, cosMaxAngle)) {
                 // accumulate sum of neighbor's positions
-                steering = steering.add(otherVehicle.position());
+                steering = steering.add(otherVehicle.mover.position());
 
                 // count neighbors
                 neighbors++;
@@ -515,7 +515,7 @@ function SteerLibrary( mover ) {
 
         // divide by neighbors, subtract off current position to get error-
         // correcting direction, then normalize to pure direction
-        if (neighbors > 0) steering = ((steering.div(neighbors)).sub(forward())).normalize();
+        if (neighbors > 0) steering = ((steering.div(neighbors)).sub(mover.forward())).normalize();
 
         return steering;
     }

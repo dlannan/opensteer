@@ -225,7 +225,7 @@ function lqCreateDatabase (originx, originy, originz, sizex, sizey, sizez, divx,
 {
     var lq = new lqInternalDB();
 
-    lqInitDatabase (lq, originx, originy, originz, sizex, sizey, sizez, divx, divy, divz);
+    lqInitDatabase(lq, originx, originy, originz, sizex, sizey, sizez, divx, divy, divz);
     return lq;
 }
 
@@ -295,15 +295,15 @@ function lqBinForLocation (lq, x, y, z) {
     if (z >= lq.originz + lq.sizez) return (lq.other);
 
     /* if point inside super-brick, compute the bin coordinates */
-    ix = parseInt(((x - lq.originx) / lq.sizex) * lq.divx);
-    iy = parseInt(((y - lq.originy) / lq.sizey) * lq.divy);
-    iz = parseInt(((z - lq.originz) / lq.sizez) * lq.divz);
+    ix = (((x - lq.originx) / lq.sizex) * lq.divx) | 0;
+    iy = (((y - lq.originy) / lq.sizey) * lq.divy) | 0;
+    iz = (((z - lq.originz) / lq.sizez) * lq.divz) | 0;
 
     /* convert to linear bin number */
     i = lqBinCoordsToBinIndex (lq, ix, iy, iz);
 
     /* return pointer to that bin */
-    return lq.bins[i];
+    return i;
 }
 
 
@@ -315,7 +315,7 @@ function lqBinForLocation (lq, x, y, z) {
 
 function lqInitClientProxy (proxy, clientObject) {
     
-    proxy = new lqClientProxy();
+    var proxy = new lqClientProxy();
     proxy.object = clientObject;
     return proxy;
 }
@@ -326,9 +326,9 @@ function lqInitClientProxy (proxy, clientObject) {
    contents list. */
 
 
-function lqAddToBin (object, bin) {
+function lqAddToBin(object, bin) {
     /* if bin is currently empty */    
-    if (bin == undefined) {
+    if (bin === undefined) {
         object.prev = undefined;
         object.next = undefined;
         bin = object;
@@ -342,6 +342,7 @@ function lqAddToBin (object, bin) {
 
     /* record bin ID in proxy object */
     object.bin = bin;
+    return bin;
 }
 
 
@@ -352,18 +353,18 @@ function lqAddToBin (object, bin) {
 
 function lqRemoveFromBin (object) {
     /* adjust pointers if object is currently in a bin */
-    if (object.bin != undefined) {
+    if (object.bin !== undefined) {
         /* If this object is at the head of the list, move the bin
         pointer to the next item in the list (might be NULL). */
-        if (object.bin == object) object.bin = object.next;
+        if (object.bin === object) object.bin = object.next;
 
         /* If there is a prev object, link its "next" pointer to the
         object after this one. */
-        if (object.prev != undefined) object.prev.next = object.next;
+        if (object.prev !== undefined) object.prev.next = object.next;
 
         /* If there is a next object, link its "prev" pointer to the
         object before this one. */
-        if (object.next != undefined) object.next.prev = object.prev;
+        if (object.next !== undefined) object.next.prev = object.prev;
     }
 
     /* Null out prev, next and bin pointers of this object. */
@@ -381,7 +382,8 @@ function lqRemoveFromBin (object) {
 
 function lqUpdateForNewLocation  (lq, object, x, y, z) {
     /* find bin for new location */
-    var newBin = lqBinForLocation (lq, x, y, z);
+    var newBinIdx = lqBinForLocation(lq, x, y, z);
+    var newBin = lq.bins[newBinIdx];
 
     /* store location in client object, for future reference */
     object.x = x;
@@ -389,9 +391,9 @@ function lqUpdateForNewLocation  (lq, object, x, y, z) {
     object.z = z;
 
     /* has object moved into a new bin? */
-    if (newBin != object.bin) {
-	    lqRemoveFromBin (object);
- 	    lqAddToBin (object, newBin);
+    if((newBin === undefined) || (newBin !== object.bin)) {
+        lqRemoveFromBin (object);
+        lq.bins[newBinIdx] = lqAddToBin(object, newBin);
     }
 }
 
@@ -402,8 +404,9 @@ function lqUpdateForNewLocation  (lq, object, x, y, z) {
    search radius.  */
 
 
-function lqTraverseBinClientObjectList(co, radiusSquared, func, state) {
-    while (co != undefined) {                                                                 
+function lqTraverseBinClientObjectList(x, y, z, co, radiusSquared, func, state) {
+    
+    while (co !== undefined) {                                                                 
 
         /* compute distance (squared) from this client   */           
         /* object to given locality sphere's centerpoint */           
@@ -413,8 +416,9 @@ function lqTraverseBinClientObjectList(co, radiusSquared, func, state) {
         var distanceSquared = (dx * dx) + (dy * dy) + (dz * dz);    
                                                                         
         /* apply function if client object within sphere */           
-        if (distanceSquared < radiusSquared)                          
+        if (distanceSquared < radiusSquared) {                         
             func(co.object, distanceSquared, state);             
+        }
                                                                         
         /* consider next client object in bin list */                 
         co = co.next;                                                
@@ -442,20 +446,19 @@ function lqMapOverAllObjectsInLocalityClipped ( lq, x, y, z, radius, func, clien
 
     /* loop for x bins across diameter of sphere */
     iindex = istart;
-    for (i = minBinX; i <= maxBinX; i++) {
+    for (var i = minBinX; i <= maxBinX; i++) {
 	/* loop for y bins across diameter of sphere */
 	jindex = jstart;
-	for (j = minBinY; j <= maxBinY; j++)
-	{
+	for(var j = minBinY; j <= maxBinY; j++) {
 	    /* loop for z bins across diameter of sphere */
 	    kindex = kstart;
-	    for (k = minBinZ; k <= maxBinZ; k++)  {
+	    for (var k = minBinZ; k <= maxBinZ; k++)  {
             /* get current bin's client object list */
             bin = lq.bins[iindex + jindex + kindex];
             co = bin;
 
             /* traverse current bin's client object list */
-            lqTraverseBinClientObjectList (co, radiusSquared, func, clientQueryState);
+            lqTraverseBinClientObjectList (x, y, z, co, radiusSquared, func, clientQueryState);
             kindex += 1;
 	    }
 	    jindex += row;
@@ -503,28 +506,23 @@ function lqMapOverAllOutsideObjects ( lq, x, y, z, radius, func, clientQueryStat
 
 function lqMapOverAllObjectsInLocality ( lq, x, y, z, radius, func, clientQueryState) {
     var partlyOut = 0;
-    var completelyOutside = 
-	(((x + radius) < lq.originx) ||
-	 ((y + radius) < lq.originy) ||
-	 ((z + radius) < lq.originz) ||
-	 ((x - radius) >= lq.originx + lq.sizex) ||
-	 ((y - radius) >= lq.originy + lq.sizey) ||
-	 ((z - radius) >= lq.originz + lq.sizez));
+    var completelyOutside = (((x + radius) < lq.originx) || ((y + radius) < lq.originy) || ((z + radius) < lq.originz));
+    completelyOutside = completelyOutside || ((x - radius) >= lq.originx + lq.sizex) || ((y - radius) >= lq.originy + lq.sizey) || ((z - radius) >= lq.originz + lq.sizez);
     var minBinX, minBinY, minBinZ, maxBinX, maxBinY, maxBinZ;
 
     /* is the sphere completely outside the "super brick"? */
-    if (completelyOutside) {
+    if(completelyOutside === true) {
 	    lqMapOverAllOutsideObjects (lq, x, y, z, radius, func, clientQueryState);
 	    return;
     }
 
     /* compute min and max bin coordinates for each dimension */
-    minBinX = parseInt((((x - radius) - lq.originx) / lq.sizex) * lq.divx);
-    minBinY = parseInt((((y - radius) - lq.originy) / lq.sizey) * lq.divy);
-    minBinZ = parseInt((((z - radius) - lq.originz) / lq.sizez) * lq.divz);
-    maxBinX = parseInt((((x + radius) - lq.originx) / lq.sizex) * lq.divx);
-    maxBinY = parseInt((((y + radius) - lq.originy) / lq.sizey) * lq.divy);
-    maxBinZ = parseInt((((z + radius) - lq.originz) / lq.sizez) * lq.divz);
+    minBinX = ((((x - radius) - lq.originx) / lq.sizex) * lq.divx) | 0;
+    minBinY = ((((y - radius) - lq.originy) / lq.sizey) * lq.divy) | 0;
+    minBinZ = ((((z - radius) - lq.originz) / lq.sizez) * lq.divz) | 0;
+    maxBinX = ((((x + radius) - lq.originx) / lq.sizex) * lq.divx) | 0;
+    maxBinY = ((((y + radius) - lq.originy) / lq.sizey) * lq.divy) | 0;
+    maxBinZ = ((((z + radius) - lq.originz) / lq.sizez) * lq.divz) | 0;
 
     /* clip bin coordinates */
     if (minBinX < 0)         {partlyOut = 1; minBinX = 0;}
@@ -535,9 +533,10 @@ function lqMapOverAllObjectsInLocality ( lq, x, y, z, radius, func, clientQueryS
     if (maxBinZ >= lq.divz) {partlyOut = 1; maxBinZ = lq.divz - 1;}
 
     /* map function over outside objects if necessary (if clipped) */
-    if (partlyOut) 
-	lqMapOverAllOutsideObjects (lq, x, y, z, radius, func, clientQueryState);
-    
+    if (partlyOut) { 
+        lqMapOverAllOutsideObjects (lq, x, y, z, radius, func, clientQueryState);
+    }
+
     /* map function over objects in bins */
     lqMapOverAllObjectsInLocalityClipped (lq, x, y, z, radius, func, clientQueryState, minBinX, minBinY, minBinZ, maxBinX, maxBinY, maxBinZ);
 }

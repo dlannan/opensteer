@@ -120,6 +120,7 @@ var Pedestrian = function( pd ) {
     // compute combined steering force: move forward, avoid obstacles
     // or neighbors if needed, otherwise follow the path and wander
     this.determineCombinedSteering = function(elapsedTime) {
+        
         // move forward
         var steeringForce = this.mover.forward();
 
@@ -231,9 +232,9 @@ function getTestPath () {
 
 var center = new Vec3();
 var div = 20.0;
-var divisions = new Vec3Set(div, 1.0, div);
+var divisions = Vec3Set(div, 1.0, div);
 var diameter = 80.0; //XXX need better way to get this
-var dimensions = new Vec3Set(diameter, diameter, diameter);
+var dimensions = Vec3Set(diameter, diameter, diameter);
 var GPD = new LQProximityDatabase( center, dimensions, divisions);
 
 var population = 0;
@@ -253,9 +254,8 @@ var yoff = 10.0;
 function addPedestrianToCrowd() {
 
     population++;
-    pedestrian = new Pedestrian( GPD );
+    var pedestrian = new Pedestrian( GPD );
     crowd.push(pedestrian);
-    if (population == 1) selectedVehicle = pedestrian;
 }
 
 function pedestrianUpdater() {
@@ -289,7 +289,7 @@ $(document).ready(function() {
 
     // create the specified number of Pedestrians
     population = 0;
-    for (var i = 0; i < 100; i++) {
+    for (var i = 0; i < 10; i++) {
         addPedestrianToCrowd();    
     }
 

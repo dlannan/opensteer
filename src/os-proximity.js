@@ -6,8 +6,15 @@
 // (parameter names commented out to prevent compiler warning from "-W")
 var perNeighborCallBackFunction = function(clientObject, distanceSquared, clientQueryState) {
     
-    var results = clientQueryState;
-    results.push(clientObject);
+    //console.log("adding results:", clientObject);
+    clientQueryState.results.push(clientObject);
+};
+
+
+// (parameter names commented out to prevent compiler warning from "-W")
+var counterCallBackFunction = function( clientObject, distanceSquared, clientQueryState ) {
+
+    clientQueryState.count++;
 };
 
 
@@ -20,11 +27,7 @@ var LQProximityDatabase = function(center, dimensions, divisions) {
     this.halfsize = dimensions.mult(0.5);
     this.origin = center.sub(this.halfsize);
 
-    this.lq = lqCreateDatabase (origin.x, origin.y, origin.z, 
-                            dimensions.x, dimensions.y, dimensions.z,  
-                            parseInt(divisions.x, 10),
-                            parseInt(divisions.y, 10),
-                            parseInt(divisions.z, 10));
+    this.lq = lqCreateDatabase(this.origin.x, this.origin.y, this.origin.z, dimensions.x, dimensions.y, dimensions.z,  (divisions.x | 0), (divisions.y | 0), (divisions.z | 0));
 
     // destructor
     this.delLQProximityDatabase = function() {
@@ -35,7 +38,7 @@ var LQProximityDatabase = function(center, dimensions, divisions) {
     // constructor
     this.tokenType = function(parentObject, lqsd) {
         
-        this.proxy = lqInitClientProxy (this.proxy, parentObject);
+        this.proxy = lqInitClientProxy(this.proxy, parentObject);
         this.lq = lqsd.lq;
 
         // destructor
@@ -45,15 +48,15 @@ var LQProximityDatabase = function(center, dimensions, divisions) {
 
         // the client object calls this each time its position changes
         this.updateForNewPosition = function( p ) {
-            lqUpdateForNewLocation (this.lq, this.proxy, p.x, p.y, p.z);
+            lqUpdateForNewLocation(this.lq, this.proxy, p.x, p.y, p.z);
         };
 
         // find all neighbors within the given sphere (as center and radius)
         this.findNeighbors = function( center, radius ) {
             
-            var results = [];
-            lqMapOverAllObjectsInLocality (this.lq, center.x, center.y, center.z, radius, perNeighborCallBackFunction, results);
-            return results;
+            var state = { "results": [] };
+            lqMapOverAllObjectsInLocality(this.lq, center.x, center.y, center.z, radius, perNeighborCallBackFunction, state);
+            return state.results;
         };
 
         // Get statistics about bin populations: min, max and
@@ -70,15 +73,9 @@ var LQProximityDatabase = function(center, dimensions, divisions) {
 
     // count the number of tokens currently in the database
     this.getPopulation = function() {
-        var count = 0;
-        lqMapOverAllObjects (this.lq, counterCallBackFunction, count);
-        return count;
-    };
-    
-    // (parameter names commented out to prevent compiler warning from "-W")
-    this.counterCallBackFunction = function( clientObject, distanceSquared, clientQueryState ) {
-
-        clientQueryState++;
+        var state = { count: 0 };
+        lqMapOverAllObjects(this.lq, counterCallBackFunction, count);
+        return state.count;
     };
 }
 

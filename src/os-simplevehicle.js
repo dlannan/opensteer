@@ -226,6 +226,12 @@ var SimpleVehicle = function() {
         this.setSide(this.localRotateForwardToSide(this.forward()));
     }
 
+    this.setHeading = function(heading) {
+        this.setUp(Vec3.up);
+        this.setForward( Vec3Set( Math.cos(heading), 0.0, Math.sin(heading) ));
+        this.setSide(this.localRotateForwardToSide(this.forward()));
+    }
+
     // measure path curvature (1/turning-radius), maintain smoothed version
     this.measurePathCurvature = function( elapsedTime ) {
 

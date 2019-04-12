@@ -113,7 +113,7 @@ var LocalSpace = function( obj ) {
     }
 
     // for supplying both a new forward and and new up
-    obj.regenerateOrthonormalBasis = function(newForward, newUp) {
+    obj.regenerateOrthonormalBasisNU = function(newForward, newUp) {
         obj._up = newUp;
         obj.regenerateOrthonormalBasis (newForward.normalize());
     }

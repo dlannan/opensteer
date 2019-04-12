@@ -63,6 +63,10 @@ function interpolateV (alpha, x0, x1) {
     return x0.add((x1.sub(x0)).mult(alpha));
 }
 
+function maxXXX ( x, y) {if (x > y) return x; else return y;}
+function minXXX ( x, y) {if (x < y) return x; else return y;}
+
+
 // ----------------------------------------------------------------------------
 // Random number utilities
 
@@ -298,7 +302,7 @@ var Vec3 = function() {
     // (IMPORTANT NOTE: assumes "basis" has unit magnitude (length==1))
 
     this.perpendicularComponent = function( unitBasis ) {
-        return (this).sub( this.parallelComponent(unitBasis) );
+        return this.sub( this.parallelComponent(unitBasis) );
     };
 
     // clamps the length of a given vector to maxLength.  If the vector is
@@ -322,9 +326,7 @@ var Vec3 = function() {
     this.rotateAboutGlobalY = function(angle) {
         var s = Math.sin(angle);
         var c = Math.cos(angle);
-        return Vec3Set((this.x * c) + (this.z * s),
-                        (this.y),
-                        (this.z * c) - (this.x * s));
+        return Vec3Set((this.x * c) + (this.z * s), (this.y), (this.z * c) - (this.x * s));
     };
 
     // version for caching sin/cos computation
@@ -334,9 +336,7 @@ var Vec3 = function() {
             sin = Math.sin(angle);
             cos = Math.cos(angle);
         }
-        return Vec3Set ((this.x * cos) + (this.z * sin),
-                        (this.y),
-                        (this.z * cos) - (this.x * sin));
+        return Vec3Set ((this.x * cos) + (this.z * sin), (this.y), (this.z * cos) - (this.x * sin));
     };
 
     // if this position is outside sphere, push it back in by one diameter
@@ -389,8 +389,7 @@ function RandomVectorInUnitRadiusSphere () {
     var v = new Vec3();
     do {
         v.set((frandom01()*2) - 1, (frandom01()*2) - 1, (frandom01()*2) - 1);
-    }
-    while (v.length() >= 1);
+    } while (v.length() >= 1);
     return v;
 }
 
