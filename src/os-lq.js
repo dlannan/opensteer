@@ -328,23 +328,24 @@ function lqInitClientProxy (proxy, clientObject) {
 
 function lqAddToBin(lq, object, idx) {
     
-    var bin = lq.bins[idx];
+    // Old object at this idx
+    var prevobj = lq.bins[idx];
+
     /* if bin is currently empty */    
-    if (bin === undefined) {
+    if (prevobj === undefined) {
         object.prev = undefined;
         object.next = undefined;
-        bin = object;
     }
     else {
         object.prev = undefined;
-        object.next = idx;
-        bin.prev = object.bin;
-        bin = object;
+        object.next = prevobj;
+        prevobj.prev = object;
     }
 
     /* record bin ID in proxy object */
     object.bin = idx;
-    return bin;
+    lq.bins[idx] = object;
+    //console.log("Added:", object);
 }
 
 
@@ -355,25 +356,30 @@ function lqAddToBin(lq, object, idx) {
 
 function lqRemoveFromBin(lq, object) {
 
+    // Object bin
+    var binobj = lq.bins[object.bin];
+
     /* adjust pointers if object is currently in a bin */
-    if (lq.bins[object.bin] !== undefined) {
+    if (binobj !== undefined) {
         /* If this object is at the head of the list, move the bin
         pointer to the next item in the list (might be NULL). */
-        if (lq.bins[object.bin] === object) { lq.bins[object.bin] = lq.bins[object.next]; }
+        if (binobj === object) { lq.bins[object.bin] = object.next; }
 
         /* If there is a prev object, link its "next" pointer to the
         object after this one. */
-        if (object.prev !== undefined) { lq.bins[object.prev].next = object.next; }
+        if (object.prev !== undefined) { object.prev.next = object.next; }
 
         /* If there is a next object, link its "prev" pointer to the
         object before this one. */
-        if (object.next !== undefined) { lq.bins[object.next].prev = object.prev; }
+        if (object.next !== undefined) { object.next.prev = object.prev; }
     }
 
     /* Null out prev, next and bin pointers of this object. */
     object.prev = undefined;
     object.next = undefined;
     object.bin = undefined;
+
+    //console.log("Removed:", object);
 }
 
 
@@ -386,16 +392,24 @@ function lqRemoveFromBin(lq, object) {
 function lqUpdateForNewLocation(lq, object, x, y, z) {
     /* find bin for new location */
     var idx = lqBinForLocation(lq, x, y, z);
-    var newBin = lq.bins[idx];
 
     /* store location in client object, for future reference */
     object.x = x;
     object.y = y;
     object.z = z;
 
+    if(idx === undefined) { lq.other = object; return; }
+    var newBin = lq.bins[idx];
+
     /* has object moved into a new bin? */
-    if((newBin === undefined) || (idx !== object.bin)) {
-        lqRemoveFromBin (lq, object);
+    if(newBin === undefined) {
+        //console.log("Adding bin!");
+        lqAddToBin(lq, object, idx);
+    } 
+    // Changing bin for this object?
+    else if(idx !== object.bin) {
+        //console.log("Changing bin!");
+        lqRemoveFromBin(lq, object);
         lqAddToBin(lq, object, idx);
     }
 }
@@ -422,9 +436,10 @@ function lqTraverseBinClientObjectList(lq, x, y, z, co, radiusSquared, func, sta
         if (distanceSquared < radiusSquared) {                         
             func(co.object, distanceSquared, state);             
         }
-                                                                        
-        /* consider next client object in bin list */                 
-        co = lq.bins[co.next];  
+                  
+        /* consider next client object in bin list */    
+        // CHecks if next co is same as this!     
+        co = undefined; //co.next;  
     }
 }
 
@@ -438,11 +453,14 @@ function lqTraverseBinClientObjectList(lq, x, y, z, co, radiusSquared, func, sta
 function lqMapOverAllObjectsInLocalityClipped ( lq, x, y, z, radius, func, clientQueryState, minBinX, minBinY, minBinZ, maxBinX, maxBinY, maxBinZ) {
     var i, j, k;
     var iindex, jindex, kindex;
+
     var slab = lq.divy * lq.divz;
     var row = lq.divz;
+
     var istart = minBinX * slab;
     var jstart = minBinY * row;
     var kstart = minBinZ;
+
     var co;
     var bin;
     var radiusSquared = radius * radius;
@@ -457,11 +475,10 @@ function lqMapOverAllObjectsInLocalityClipped ( lq, x, y, z, radius, func, clien
             kindex = kstart;
             for (var k = minBinZ; k <= maxBinZ; k++)  {
                 /* get current bin's client object list */
-                bin = lq.bins[iindex + jindex + kindex];
-                co = bin;
+                co = lq.bins[iindex + jindex + kindex];
 
                 /* traverse current bin's client object list */
-                lqTraverseBinClientObjectList (lq, x, y, z, co, radiusSquared, func, clientQueryState);
+                lqTraverseBinClientObjectList(lq, x, y, z, co, radiusSquared, func, clientQueryState);
                 kindex += 1;
             }
             jindex += row;
@@ -479,6 +496,7 @@ function lqMapOverAllObjectsInLocalityClipped ( lq, x, y, z, radius, func, clien
 
 function lqMapOverAllOutsideObjects ( lq, x, y, z, radius, func, clientQueryState)
 {
+    if(lq.other === undefined) return;
     var co = lq.other;
     var radiusSquared = radius * radius;
 
@@ -508,13 +526,15 @@ function lqMapOverAllOutsideObjects ( lq, x, y, z, radius, func, clientQueryStat
 
 
 function lqMapOverAllObjectsInLocality( lq, x, y, z, radius, func, clientQueryState) {
-    var partlyOut = 0;
-    var completelyOutside = (((x + radius) < lq.originx) || ((y + radius) < lq.originy) || ((z + radius) < lq.originz));
-    completelyOutside = completelyOutside || ((x - radius) >= lq.originx + lq.sizex) || ((y - radius) >= lq.originy + lq.sizey) || ((z - radius) >= lq.originz + lq.sizez);
+
     var minBinX, minBinY, minBinZ, maxBinX, maxBinY, maxBinZ;
+    var partlyOut = 0;
+    var completelyOutside = ((x + radius) < lq.originx) || ((y + radius) < lq.originy) || ((z + radius) < lq.originz);
+    completelyOutside = completelyOutside || ((x - radius) >= lq.originx + lq.sizex) || ((y - radius) >= lq.originy + lq.sizey) || ((z - radius) >= lq.originz + lq.sizez);
 
     /* is the sphere completely outside the "super brick"? */
     if(completelyOutside === true) {
+        //console.log("Outside super brick??????");
 	    lqMapOverAllOutsideObjects (lq, x, y, z, radius, func, clientQueryState);
 	    return;
     }
@@ -536,10 +556,12 @@ function lqMapOverAllObjectsInLocality( lq, x, y, z, radius, func, clientQuerySt
     if (maxBinZ >= lq.divz) {partlyOut = 1; maxBinZ = lq.divz - 1;}
 
     /* map function over outside objects if necessary (if clipped) */
-    if (partlyOut) { 
+    if (partlyOut === 1) { 
+        //console.log("Partly out");
         lqMapOverAllOutsideObjects (lq, x, y, z, radius, func, clientQueryState);
     }
 
+    //console.log("Map over objects");
     /* map function over objects in bins */
     lqMapOverAllObjectsInLocalityClipped (lq, x, y, z, radius, func, clientQueryState, minBinX, minBinY, minBinZ, maxBinX, maxBinY, maxBinZ);
 }

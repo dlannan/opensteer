@@ -45,7 +45,7 @@
 
 var PathIntersection = function() {
     this.intersect = 0;
-    this.distance = 0.0;
+    this.distance = Number.MAX_VALUE;
     this.surfacePoint = new Vec3();
     this.surfaceNormal = new Vec3();
     this.obstacle = SphericalObstacle();
@@ -200,11 +200,12 @@ function SteerLibrary( mover ) {
         // test all obstacles for intersection with my forward axis,
         // select the one whose point of intersection is nearest
         for (var okey in obstacles) {
+
             var obst = obstacles[okey];
             // xxx this should be a generic call on Obstacle, rather than
             // xxx this code which presumes the obstacle is spherical
             next = mover.findNextIntersectionWithSphere(obst, next);
-    
+console.log("NEXT" + okey, [next.distance, nearest.distance]);
             if ((nearest.intersect === false) || ((next.intersect !== false) && (next.distance < nearest.distance))) {
                 nearest = next;
             }
@@ -259,7 +260,7 @@ function SteerLibrary( mover ) {
         for (var i = 0; i < others.length; i++) {
             
             var other = others[i];
-            if(other !== mover) {	
+            if(other.mover !== mover) {	
                 // avoid when future positions are this close (or less)
                 var collisionDangerThreshold = mover.radius() * 2;
 
@@ -380,7 +381,7 @@ function SteerLibrary( mover ) {
         // for each of the other vehicles...
         for (var i = 0; i < others.length; i++) {
             var other = others[i];
-            if (other !== mover)  {
+            if (other.mover !== mover)  {
                 var sumOfRadii = mover.radius() + other.mover.radius();
                 var minCenterToCenter = minSeparationDistance + sumOfRadii;
                 var offset = other.mover.position().sub( mover.position() );
@@ -640,7 +641,7 @@ function SteerLibrary( mover ) {
         return mover.forward() * clip(speedError, -mf, +mf);    
     }
 
-    mover.findNextIntersectionWithSphere = function( obs, intersection) {
+    mover.findNextIntersectionWithSphere = function( obs ) {
         // xxx"SphericalObstacle& obs" should be "const SphericalObstacle&
         // obs" but then it won't let me store a pointer to in inside the
         // PathIntersection
@@ -651,41 +652,41 @@ function SteerLibrary( mover ) {
 
         var b, c, d, p, q, s;
         var lc = new Vec3();
+        var intersection = new PathIntersection();
 
         // initialize pathIntersection object
         intersection.intersect = false;
         intersection.obstacle = obs;
 
         // find "local center" (lc) of sphere in boid's coordinate space
-        lc = mover.localizePosition (obs.center);
+        lc = mover.localizePosition(obs.center);
 
         // computer line-sphere intersection parameters
-        b = -2 * lc.z;
-        c = square (lc.x) + square (lc.y) + square (lc.z) - 
-        square (obs.radius + mover.radius());
-        d = (b * b) - (4 * c);
+        b = -2.0 * lc.z;
+        c = square(lc.x) + square(lc.y) + square(lc.z) - square(obs.radius + mover.radius());
+        d = (b * b) - (4.0 * c);
 
         // when the path does not intersect the sphere
-        if (d < 0) return intersection;
+        if (d < 0.0) { return intersection; }
 
         // otherwise, the path intersects the sphere in two points with
         // parametric coordinates of "p" and "q".
         // (If "d" is zero the two points are coincident, the path is tangent)
         s = Math.sqrt(d);
-        p = (-b + s) / 2;
-        q = (-b - s) / 2;
+        p = (-b + s) / 2.0;
+        q = (-b - s) / 2.0;
 
         // both intersections are behind us, so no potential collisions
-        if ((p < 0) && (q < 0)) return intersection; 
+        if ((p < 0.0) && (q < 0.0)) { return intersection; } 
 
         // at least one intersection is in front of us
         intersection.intersect = true;
-        if((p > 0) && (q > 0)) {
+        if((p > 0.0) && (q > 0.0)) {
             // both intersections are in front of us, find nearest one
             intersection.distance = ((p < q) ? p : q);
         } else {
             // otherwise only one intersections is in front, select it
-            intersection.distance = ((p > 0) ? p : q);
+            intersection.distance = ((p > 0.0) ? p : q);
         }
         return intersection;
     }

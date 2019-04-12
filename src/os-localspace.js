@@ -56,9 +56,7 @@ var LocalSpace = function( obj ) {
     // transform a direction in global space to its equivalent in local space
     obj.localizeDirection = function(globalDirection) {
         // dot offset with local basis vectors to obtain local coordiantes
-        return Vec3Set (globalDirection.dot(obj._side),
-                        globalDirection.dot(obj._up),
-                        globalDirection.dot(obj._forward));
+        return Vec3Set (globalDirection.dot(obj._side), globalDirection.dot(obj._up), globalDirection.dot(obj._forward));
     }
 
     // transform a point in global space to its equivalent in local space

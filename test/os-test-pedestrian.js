@@ -82,6 +82,7 @@ var Pedestrian = function( pd ) {
         var d = this.path.getTotalPathLength() * frandom01();
         var r = this.path.radius;
         var randomOffset = randomVectorOnUnitRadiusXZDisk().mult( r );
+
         this.mover.setPosition(this.path.mapPathDistanceToPoint(d).add( randomOffset));
 
         // randomize 2D heading
@@ -112,7 +113,6 @@ var Pedestrian = function( pd ) {
                 this.pathDirection = -1;
             }
         }
-
         // notify proximity database that our position has changed
         this.proximityToken.updateForNewPosition( this.mover.position() );
     }
@@ -152,7 +152,7 @@ var Pedestrian = function( pd ) {
 
             this.neighbors = this.proximityToken.findNeighbors(this.mover.position(), maxRadius);
             
-            if ((leakThrough < frandom01()) && (this.neighbors.length > 0)) {
+            if (leakThrough < frandom01()) {
                 collisionAvoidance = (this.mover.steerToAvoidNeighbors(caLeadTime, this.neighbors)).mult(10.0);
             }
 
@@ -208,27 +208,26 @@ function getTestPath () {
         var out = 2.0 * size;
         var h = 0.5;
         var pathPoints = [
-             new Vec3Set (h+gap-out,     0,0,  h+top-out),  // 0 a
-             new Vec3Set (h+gap,         0.0,  h+top),      // 1 b
-             new Vec3Set (h+gap+(top/2), 0.0,  h+top/2),    // 2 c
-             new Vec3Set (h+gap,         0.0,  h),          // 3 d
-             new Vec3Set (h,             0.0,  h),          // 4 e
-             new Vec3Set (h,             0.0,  h+top),      // 5 f
-             new Vec3Set (h+gap,         0.0,  h+top/2)     // 6 g
+             Vec3Set (h+gap-out,     0,0,  h+top-out),  // 0 a
+             Vec3Set (h+gap,         0.0,  h+top),      // 1 b
+             Vec3Set (h+gap+(top/2), 0.0,  h+top/2),    // 2 c
+             Vec3Set (h+gap,         0.0,  h),          // 3 d
+             Vec3Set (h,             0.0,  h),          // 4 e
+             Vec3Set (h,             0.0,  h+top),      // 5 f
+             Vec3Set (h+gap,         0.0,  h+top/2)     // 6 g
         ];
 
-        gObstacle1.center = interpolateV (0.2, pathPoints[0], pathPoints[1]);
-        gObstacle2.center = interpolateV (0.5, pathPoints[2], pathPoints[3]);
+        gObstacle1.center = interpolateV(0.2, pathPoints[0], pathPoints[1]);
+        gObstacle2.center = interpolateV(0.5, pathPoints[2], pathPoints[3]);
         gObstacle1.radius = 3.0;
         gObstacle2.radius = 5.0;
-        gObstacles.push(gObstacle1);
         gObstacles.push(gObstacle2);
+        gObstacles.push(gObstacle1);
 
         gEndpoint0 = pathPoints[0];
         gEndpoint1 = pathPoints[pathPointCount-1];
 
         gTestPath = PolylinePathway1(pathPointCount, pathPoints, pathRadius, false);
-        console.log("Path:", gTestPath);
     }
     return gTestPath;
 };
@@ -271,7 +270,7 @@ function drawPath(ctx, scale, xoff, yoff) {
 var center = new Vec3();
 var div = 20.0;
 var divisions = Vec3Set(div, 1.0, div);
-var diameter = 80.0; //XXX need better way to get this
+var diameter = 200.0; //XXX need better way to get this
 var dimensions = Vec3Set(diameter, diameter, diameter);
 var GPD = new LQProximityDatabase( center, dimensions, divisions);
 
