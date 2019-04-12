@@ -258,7 +258,7 @@ function boidUpdater() {
         // ctx.arc(pos.x * scale + scale * xoff, pos.z * scale + scale * yoff, scale, 0, Math.PI*2);
         // ctx.fill();        
     }
-    setTimeout( boidUpdater, 20 );
+    setTimeout( boidUpdater, 40 );
 }
 
 $(document).ready(function() {

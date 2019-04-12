@@ -199,13 +199,13 @@ function SteerLibrary( mover ) {
     
         // test all obstacles for intersection with my forward axis,
         // select the one whose point of intersection is nearest
-        for (var o = 0; o < obstacles.length; o++) {
-            var obst = obstacles[o];
+        for (var okey in obstacles) {
+            var obst = obstacles[okey];
             // xxx this should be a generic call on Obstacle, rather than
             // xxx this code which presumes the obstacle is spherical
             next = mover.findNextIntersectionWithSphere(obst, next);
     
-            if ((nearest.intersect == false) || ((next.intersect != false) && (next.distance < nearest.distance))) {
+            if ((nearest.intersect === false) || ((next.intersect !== false) && (next.distance < nearest.distance))) {
                 nearest = next;
             }
         }

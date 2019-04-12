@@ -247,10 +247,10 @@ function drawPath(ctx, scale, xoff, yoff) {
 
     var x = gObstacle1.center.x * scale + scale * xoff;
     var z = gObstacle1.center.z * scale + scale * yoff;
-    drawObstacle(ctx, x,z, scale, gObstacle1.radius);
+    drawObstacle(ctx, x, z, scale, gObstacle1.radius);
     x = gObstacle2.center.x * scale + scale * xoff;
     z = gObstacle2.center.z * scale + scale * yoff;
-    drawObstacle(ctx, x,z, scale, gObstacle2.radius);
+    drawObstacle(ctx, x, z, scale, gObstacle2.radius);
 
     ctx.beginPath();
     for (var idx in gTestPath.points) {
@@ -285,7 +285,7 @@ var currentTime;
 var elapsedTime;
 
 var ctx;
-var scale = 10.0;
+var scale = 7.0;
 var xoff = 30.0;
 var yoff = 10.0;
 
