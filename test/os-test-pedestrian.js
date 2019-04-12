@@ -14,7 +14,7 @@ var gEndpoint1 = new Vec3();
 var gUseDirectedPathFollowing = true;
 
 // this was added for debugging tool, but I might as well leave it in
-var gWanderSwitch = true;
+var gWanderSwitch = false;
 
 
 var Pedestrian = function( pd ) {
@@ -142,7 +142,7 @@ var Pedestrian = function( pd ) {
         }
         else {
             // otherwise consider avoiding collisions with others
-            var collisionAvoidance = new Vec3();
+            var collisionAvoidance = Vec3Set(0.0, 0.0, 0.0);
             var caLeadTime = 3.0;
 
             // find all neighbors within maxRadius using proximity database
@@ -150,14 +150,15 @@ var Pedestrian = function( pd ) {
             // where a collision is possible within caLeadTime seconds.)
             var maxRadius = caLeadTime * this.mover.maxSpeed() * 2.0;
             this.neighbors = this.proximityToken.findNeighbors(this.mover.position(), maxRadius);
-
-            if (leakThrough < frandom01()) {
+            
+            if ((leakThrough < frandom01()) && (this.neighbors.length > 0)) {
                 collisionAvoidance = (this.mover.steerToAvoidNeighbors(caLeadTime, this.neighbors)).mult(10.0);
             }
 
             // if collision avoidance is needed, do it
             if (collisionAvoidance.neq(Vec3.zero)) {
                 steeringForce = steeringForce.add(collisionAvoidance);
+                drawVector(this.mover.position(), steeringForce, 5.0);
             }
             else {
                 // add in wander component (according to user switch)
@@ -167,11 +168,12 @@ var Pedestrian = function( pd ) {
 
                 // do (interactively) selected type of path following
                 var pfLeadTime = 3.0;
-                var pathFollow = this.mover.steerToStayOnPath(pfLeadTime, this.path);
-
+                var pathFollow;
                 if(gUseDirectedPathFollowing == true) {
                     pathFollow = this.mover.steerToFollowPath(this.pathDirection, pfLeadTime, this.path);
-                }                   
+                } else {
+                    pathFollow = this.mover.steerToStayOnPath(pfLeadTime, this.path);
+                }
 
                 // add in to steeringForce
                 steeringForce = steeringForce.add(pathFollow.mult(0.5));
@@ -230,6 +232,41 @@ function getTestPath () {
     return gTestPath;
 };
 
+function drawObstacle( ctx, x, z, scale, r) {
+
+    ctx.beginPath();
+    ctx.arc(x, z, scale * r, 0, Math.PI*2);
+    ctx.stroke();
+}
+
+function drawPath(ctx, scale, xoff, yoff) {
+
+    var ct = 0;
+    var lastpt = undefined;
+
+    var x = gObstacle1.center.x * scale + scale * xoff;
+    var z = gObstacle1.center.z * scale + scale * yoff;
+    drawObstacle(ctx, x,z, scale, gObstacle1.radius);
+    x = gObstacle2.center.x * scale + scale * xoff;
+    z = gObstacle2.center.z * scale + scale * yoff;
+    drawObstacle(ctx, x,z, scale, gObstacle2.radius);
+
+    ctx.beginPath();
+    for (var idx in gTestPath.points) {
+        var pt = gTestPath.points[idx];
+        var x = pt.x * scale + scale * xoff;
+        var z = pt.z * scale + scale * yoff;
+        if(ct == 0) {
+            ctx.moveTo(x, z);
+        }
+        if(ct > 0) {
+            ctx.lineTo(x, z);
+        }
+        ct = ct+1
+    }
+    ctx.stroke();
+}
+
 var center = new Vec3();
 var div = 20.0;
 var divisions = Vec3Set(div, 1.0, div);
@@ -251,6 +288,35 @@ var scale = 10.0;
 var xoff = 30.0;
 var yoff = 10.0;
 
+function drawTarget( x, z, sz ) {
+    
+    var x = x * scale + scale * xoff;
+    var z = z * scale + scale * yoff;
+    
+    ctx.strokeStyle = "#FF0000";
+    ctx.beginPath();
+    ctx.moveTo(x-scale*sz, z);
+    ctx.lineTo(x+scale*sz, z);
+    ctx.moveTo(x, z-scale*sz);
+    ctx.lineTo(x, z+scale*sz);
+    ctx.stroke();
+}
+
+function drawVector( p, v, sz ) {
+    
+    var x = p.x * scale + scale * xoff;
+    var z = p.z * scale + scale * yoff;
+    var vx = (p.x + v.x * sz) * scale + scale * xoff;
+    var vz = (p.z + v.z * sz) * scale + scale * yoff;
+    
+    ctx.strokeStyle = "#0000FF";
+    ctx.beginPath();
+    ctx.moveTo(x, z);
+    ctx.lineTo(vx, vz);
+    ctx.stroke();
+}
+
+
 function addPedestrianToCrowd() {
 
     population++;
@@ -265,6 +331,8 @@ function pedestrianUpdater() {
     elapsedTime = currentTime - oldTime;
     
     ctx.clearRect(0,0,1000,800);
+    ctx.strokeStyle = "#000000";
+    drawPath(ctx, scale, xoff, yoff);
 
     // update each Pedestrian
     for (var i = 0; i < crowd.length; i++) {
@@ -289,7 +357,7 @@ $(document).ready(function() {
 
     // create the specified number of Pedestrians
     population = 0;
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 1; i++) {
         addPedestrianToCrowd();    
     }
 

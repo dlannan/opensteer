@@ -254,6 +254,7 @@ function boidUpdater() {
         // ctx.lineTo(x - (fwd.x-side.x) * scale + xoff * scale, z-(fwd.y-side.y) * scale + yoff * scale);
         // ctx.lineTo(x - (fwd.x+side.x) * scale + xoff * scale, z-(fwd.y+side.y) * scale + yoff * scale);
         // ctx.closePath();
+        // ctx.stroke();
 
         ctx.beginPath();
         ctx.arc(pos.x * scale + scale * xoff, pos.z * scale + scale * yoff, scale, 0, Math.PI*2);

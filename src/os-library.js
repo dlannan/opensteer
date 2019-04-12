@@ -139,7 +139,9 @@ function SteerLibrary( mover ) {
 
             var targetPathDistance = nowPathDistance + pathDistanceOffset;
             var target = path.mapPathDistanceToPoint(targetPathDistance);
-
+        
+            drawTarget(target.x, target.z, 2.0);
+            
             // return steering to seek target on path
             return mover.steerForSeek(target);
         }
@@ -234,7 +236,7 @@ function SteerLibrary( mover ) {
 
 
     mover.steerToAvoidNeighbors = function( minTimeToCollision, others) {
-        
+
         // first priority is to prevent immediate interpenetration
         var separation = this.steerToAvoidCloseNeighbors(0.0, others);
         if (separation.neq(Vec3.zero)) return separation;
@@ -254,15 +256,15 @@ function SteerLibrary( mover ) {
 
         // for each of the other vehicles, determine which (if any)
         // pose the most immediate threat of collision.
-        for (var i = 0; i < others.length; i++)
-        {
+        for (var i = 0; i < others.length; i++) {
+            
             var other = others[i];
-            if(other != mover) {	
+            if(other !== mover) {	
                 // avoid when future positions are this close (or less)
                 var collisionDangerThreshold = mover.radius() * 2;
 
                 // predicted time until nearest approach of "this" and "other"
-                var time = mover.predictNearestApproachTime (other);
+                var time = mover.predictNearestApproachTime(other);
 
                 // If the time is in the future, sooner than any other
                 // threatened collision...

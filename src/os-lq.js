@@ -447,23 +447,23 @@ function lqMapOverAllObjectsInLocalityClipped ( lq, x, y, z, radius, func, clien
     /* loop for x bins across diameter of sphere */
     iindex = istart;
     for (var i = minBinX; i <= maxBinX; i++) {
-	/* loop for y bins across diameter of sphere */
-	jindex = jstart;
-	for(var j = minBinY; j <= maxBinY; j++) {
-	    /* loop for z bins across diameter of sphere */
-	    kindex = kstart;
-	    for (var k = minBinZ; k <= maxBinZ; k++)  {
-            /* get current bin's client object list */
-            bin = lq.bins[iindex + jindex + kindex];
-            co = bin;
+        /* loop for y bins across diameter of sphere */
+        jindex = jstart;
+        for(var j = minBinY; j <= maxBinY; j++) {
+            /* loop for z bins across diameter of sphere */
+            kindex = kstart;
+            for (var k = minBinZ; k <= maxBinZ; k++)  {
+                /* get current bin's client object list */
+                bin = lq.bins[iindex + jindex + kindex];
+                co = bin;
 
-            /* traverse current bin's client object list */
-            lqTraverseBinClientObjectList (x, y, z, co, radiusSquared, func, clientQueryState);
-            kindex += 1;
-	    }
-	    jindex += row;
-	}
-	iindex += slab;
+                /* traverse current bin's client object list */
+                lqTraverseBinClientObjectList (x, y, z, co, radiusSquared, func, clientQueryState);
+                kindex += 1;
+            }
+            jindex += row;
+        }
+        iindex += slab;
     }
 }
 
@@ -504,7 +504,7 @@ function lqMapOverAllOutsideObjects ( lq, x, y, z, radius, func, clientQueryStat
    bins of interest. */
 
 
-function lqMapOverAllObjectsInLocality ( lq, x, y, z, radius, func, clientQueryState) {
+function lqMapOverAllObjectsInLocality( lq, x, y, z, radius, func, clientQueryState) {
     var partlyOut = 0;
     var completelyOutside = (((x + radius) < lq.originx) || ((y + radius) < lq.originy) || ((z + radius) < lq.originz));
     completelyOutside = completelyOutside || ((x - radius) >= lq.originx + lq.sizex) || ((y - radius) >= lq.originy + lq.sizey) || ((z - radius) >= lq.originz + lq.sizez);
@@ -557,7 +557,7 @@ function lqFindNearestHelper (clientObject, distanceSquared, clientQueryState) {
     var fns = clientQueryState;
 
     /* do nothing if this is the "ignoreObject" */
-    if (fns.ignoreObject != clientObject) {
+    if (fns.ignoreObject !== clientObject) {
         /* record this object if it is the nearest one so far */
         if (fns.minDistanceSquared > distanceSquared) {
             fns.nearestObject = clientObject;
@@ -585,7 +585,7 @@ function lqFindNearestNeighborWithinRadius (lq, x, y, z, radius, ignoreObject) {
     var lqFNS = new lqFindNearestState();
     lqFNS.nearestObject = undefined;
     lqFNS.ignoreObject = ignoreObject;
-    lqFNS.minDistanceSquared = FLT_MAX;
+    lqFNS.minDistanceSquared = Number.MAX_VALUE;
 
     /* map search helper function over all objects within radius */
     lqMapOverAllObjectsInLocality (lq, x, y, z, radius, lqFindNearestHelper, lqFNS);
@@ -628,7 +628,7 @@ function lqMapOverAllObjects (lq, func, clientQueryState)
 
 
 function lqRemoveAllObjectsInBin(bin) {
-    while ((bin) != undefined) {
+    while (bin !== undefined) {
         lqRemoveFromBin(bin);
     }
 }

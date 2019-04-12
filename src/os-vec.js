@@ -286,7 +286,7 @@ var Vec3 = function() {
     };
     
     // equality/inequality
-    this.eq = function(v) { return this.x==v.x && this.y==v.y && this.z==v.z; }
+    this.eq = function(v) { return (this.x===v.x) && (this.y===v.y) && (this.z===v.z); }
     this.neq = function(v) { return !(this.eq(v)); }
 
     // --------------------------- utility member functions used in OpenSteer
