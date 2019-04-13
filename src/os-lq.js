@@ -133,14 +133,12 @@
 
 
 function lqClientProxy() {
-    /* previous object in this bin, or NULL */
-    this.prev = undefined;
-
-    /* next object in this bin, or NULL */
-    this.next = undefined;
 
     /* bin ID (pointer to pointer to bin contents list) */
     this.bin = undefined;
+
+    /* bin tag in the bin list - its a simple hash lookup for a guid */
+    this.bintag = Math.random().toString(36).substring(2) + (new Date()).getTime().toString(36);;
 
     /* pointer to client object */
     this.object = undefined;
@@ -235,7 +233,7 @@ function lqCreateDatabase (originx, originy, originz, sizex, sizey, sizez, divx,
 
 
 function lqDeleteDatabase(lq) {
-    delete lq.bins;
+    lq.bins = [];
     delete lq;
 }
 
@@ -329,22 +327,16 @@ function lqInitClientProxy (proxy, clientObject) {
 function lqAddToBin(lq, object, idx) {
     
     // Old object at this idx
-    var prevobj = lq.bins[idx];
+    var binlist = lq.bins[idx];
 
     /* if bin is currently empty */    
-    if (prevobj === undefined) {
-        object.prev = undefined;
-        object.next = undefined;
-    }
-    else {
-        object.prev = undefined;
-        object.next = prevobj;
-        prevobj.prev = object;
+    if(binlist === undefined) {
+        lq.bins[idx] = {}
     }
 
     /* record bin ID in proxy object */
     object.bin = idx;
-    lq.bins[idx] = object;
+    lq.bins[idx][object.bintag] = object;
     //console.log("Added:", object);
 }
 
@@ -361,25 +353,14 @@ function lqRemoveFromBin(lq, object) {
 
     /* adjust pointers if object is currently in a bin */
     if (binobj !== undefined) {
-        /* If this object is at the head of the list, move the bin
-        pointer to the next item in the list (might be NULL). */
-        if (binobj === object) { lq.bins[object.bin] = object.next; }
-
-        /* If there is a prev object, link its "next" pointer to the
-        object after this one. */
-        if (object.prev !== undefined) { object.prev.next = object.next; }
-
-        /* If there is a next object, link its "prev" pointer to the
-        object before this one. */
-        if (object.next !== undefined) { object.next.prev = object.prev; }
+        delete binobj[object.bintag];
     }
 
     /* Null out prev, next and bin pointers of this object. */
-    object.prev = undefined;
-    object.next = undefined;
     object.bin = undefined;
 
     //console.log("Removed:", object);
+    lq.bins[object.bin] = binobj;
 }
 
 
@@ -398,7 +379,7 @@ function lqUpdateForNewLocation(lq, object, x, y, z) {
     object.y = y;
     object.z = z;
 
-    if(idx === undefined) { lq.other = object; return; }
+    if(idx === undefined) { return; }
     var newBin = lq.bins[idx];
 
     /* has object moved into a new bin? */
@@ -421,9 +402,11 @@ function lqUpdateForNewLocation(lq, object, x, y, z) {
    search radius.  */
 
 
-function lqTraverseBinClientObjectList(lq, x, y, z, co, radiusSquared, func, state) {
+function lqTraverseBinClientObjectList(lq, x, y, z, idx, radiusSquared, func, state) {
     
-    while (co !== undefined) {                                                                 
+    var binlist = lq.bins[idx];
+    for(var bidx in binlist) {                                                                 
+        var co = binlist[bidx];
 
         /* compute distance (squared) from this client   */           
         /* object to given locality sphere's centerpoint */           
@@ -435,11 +418,7 @@ function lqTraverseBinClientObjectList(lq, x, y, z, co, radiusSquared, func, sta
         /* apply function if client object within sphere */           
         if (distanceSquared < radiusSquared) {                         
             func(co.object, distanceSquared, state);             
-        }
-                  
-        /* consider next client object in bin list */    
-        // CHecks if next co is same as this!     
-        co = undefined; //co.next;  
+        }                 
     }
 }
 
@@ -475,7 +454,7 @@ function lqMapOverAllObjectsInLocalityClipped ( lq, x, y, z, radius, func, clien
             kindex = kstart;
             for (var k = minBinZ; k <= maxBinZ; k++)  {
                 /* get current bin's client object list */
-                co = lq.bins[iindex + jindex + kindex];
+                co = iindex + jindex + kindex;
 
                 /* traverse current bin's client object list */
                 lqTraverseBinClientObjectList(lq, x, y, z, co, radiusSquared, func, clientQueryState);

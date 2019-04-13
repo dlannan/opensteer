@@ -205,7 +205,6 @@ function SteerLibrary( mover ) {
             // xxx this should be a generic call on Obstacle, rather than
             // xxx this code which presumes the obstacle is spherical
             next = mover.findNextIntersectionWithSphere(obst, next);
-console.log("NEXT" + okey, [next.distance, nearest.distance]);
             if ((nearest.intersect === false) || ((next.intersect !== false) && (next.distance < nearest.distance))) {
                 nearest = next;
             }
