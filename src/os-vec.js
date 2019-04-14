@@ -284,6 +284,10 @@ var Vec3 = function() {
         this.div(d);
         return this;  
     };
+
+    this.clone = function() {
+        return Vec3Set( this.x, this.y, this.z );
+    }
     
     // equality/inequality
     this.eq = function(v) { return (this.x===v.x) && (this.y===v.y) && (this.z===v.z); }
