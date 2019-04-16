@@ -12,3 +12,7 @@ I have implemented only the pedestrian demo. I'll add more of the demos at a lat
 12/04/2019 - Added boids demo and fixed many bugs (still some things broken).
 
 ![Opensteer](/screenshots/opensteer-anim-boids.gif)
+
+14/04/2019 - Added soccer demo and fixed bugs.
+
+![Opensteer](/screenshots/opensteer-anim-soccer.gif)
